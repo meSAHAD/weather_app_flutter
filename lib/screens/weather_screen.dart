@@ -22,7 +22,16 @@ class _WeatherScreenState extends State<WeatherScreen> {
   bool _loading = false;
   bool _fading = false;
 
-  List<String> _cityNames = ['Dhaka', 'Chittagong', 'Khulna','Rajshahi', 'Sylhet', 'Barisal', 'Rangpur', 'Mymensingh'];
+  List<String> _cityNames = [
+    'Dhaka',
+    'Chittagong',
+    'Khulna',
+    'Rajshahi',
+    'Sylhet',
+    'Barisal',
+    'Rangpur',
+    'Mymensingh'
+  ];
   List<Weather> _otherCities = [];
 
   @override
@@ -32,7 +41,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   Future<void> _loadInitialWeather() async {
-    _cityController.text = 'Barisal';
+    // _cityController.text = 'Barisal';
     await _getWeather('Barisal', animate: false);
     await _loadOtherCitiesWeather();
   }
@@ -110,14 +119,29 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.8),
-                  labelText: 'Enter city name',
+                  hintText: 'Enter a city name', // Placeholder text
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.search),
-                    onPressed: () => _getWeather(_cityController.text),
+                    onPressed: () {
+                      if (_cityController.text.isNotEmpty) {
+                        _getWeather(_cityController.text); // Fetch weather
+                        _cityController
+                            .clear(); // Clear text to show placeholder again
+                      }
+                    },
                   ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) {
+                    _getWeather(value); // Fetch weather
+                    _cityController
+                        .clear(); // Clear text to show placeholder again
+                  }
+                },
               ),
               const SizedBox(height: 24),
               if (_loading && _weather == null)
