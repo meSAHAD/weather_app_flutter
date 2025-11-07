@@ -38,7 +38,16 @@ class _CitiesScreenState extends State<CitiesScreen> {
   Future<void> _loadCities() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('saved_cities') ??
-        ['Dhaka', 'Chittagong', 'Khulna'];
+        [
+          'Dhaka',
+          'Chittagong',
+          'Khulna',
+          'Rajshahi',
+          'Barisal',
+          'Sylhet',
+          'Rangpur',
+          'Mymensingh'
+        ];
     _cityNames = saved;
     await _fetchCitiesWeather();
   }
@@ -149,23 +158,27 @@ class _CitiesScreenState extends State<CitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const gradient = LinearGradient(
-      colors: [Colors.indigo, Colors.blueAccent],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // Allow the body to extend behind the app bar for the blur effect
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
         title: const Text('Cities',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white54,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        // Make AppBar transparent to see the blur effect
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        // Add the blur effect to the AppBar's background
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.black.withOpacity(0.1)),
+          ),
+        ),
         actions: [
           if (!_isEditMode)
             IconButton(
-              icon: const Icon(Icons.add, color: Colors.black),
+              icon: const Icon(Icons.add, color: Colors.white),
               tooltip: 'Add City',
               onPressed: _showAddCityDialog,
             ),
@@ -176,10 +189,10 @@ class _CitiesScreenState extends State<CitiesScreen> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.black,
+                      color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.refresh, color: Colors.black),
+                : const Icon(Icons.refresh, color: Colors.white),
             tooltip: 'Refresh Weather',
             onPressed: _loading
                 ? null
@@ -203,7 +216,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
           IconButton(
             icon: Icon(
               _isEditMode ? Icons.done : Icons.edit,
-              color: Colors.black,
+              color: Colors.white,
             ),
             tooltip: _isEditMode ? 'Done Editing' : 'Edit Cities',
             onPressed: () => setState(() => _isEditMode = !_isEditMode),
@@ -211,39 +224,50 @@ class _CitiesScreenState extends State<CitiesScreen> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(gradient: gradient),
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white))
-            : ReorderableListView.builder(
-                // Add padding to avoid content being hidden by the nav bar
-                padding: const EdgeInsets.only(
-                  top: 16,
-                  left: 12,
-                  right: 12,
-                  bottom: 120, // Space for the floating navigation bar
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/welcome.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+          child: _loading
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.white))
+              : Container(
+                  color: Colors.black.withOpacity(0.3),
+                  child: ReorderableListView.builder(
+                    // Add padding to avoid content being hidden by the nav bar
+                    padding: const EdgeInsets.only(
+                      top: 16,
+                      left: 12,
+                      right: 12,
+                      bottom: 120, // Space for the floating navigation bar
+                    ),
+                    itemCount: _citiesWeather.length,
+                    onReorderStart: (index) =>
+                        setState(() => _draggingIndex = index),
+                    onReorderEnd: (_) => setState(() => _draggingIndex = null),
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        if (newIndex > oldIndex) newIndex -= 1;
+                        final city = _cityNames.removeAt(oldIndex);
+                        final weather = _citiesWeather.removeAt(oldIndex);
+                        _cityNames.insert(newIndex, city);
+                        _citiesWeather.insert(newIndex, weather);
+                      });
+                      _saveCities();
+                    },
+                    buildDefaultDragHandles: false,
+                    itemBuilder: (context, index) {
+                      final weather = _citiesWeather[index];
+                      final isDragging = _draggingIndex == index;
+                      return _buildCityCard(weather, index, isDragging);
+                    },
+                  ),
                 ),
-                itemCount: _citiesWeather.length,
-                onReorderStart: (index) =>
-                    setState(() => _draggingIndex = index),
-                onReorderEnd: (_) => setState(() => _draggingIndex = null),
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final city = _cityNames.removeAt(oldIndex);
-                    final weather = _citiesWeather.removeAt(oldIndex);
-                    _cityNames.insert(newIndex, city);
-                    _citiesWeather.insert(newIndex, weather);
-                  });
-                  _saveCities();
-                },
-                buildDefaultDragHandles: false,
-                itemBuilder: (context, index) {
-                  final weather = _citiesWeather[index];
-                  final isDragging = _draggingIndex == index;
-                  return _buildCityCard(weather, index, isDragging);
-                },
-              ),
+        ),
       ),
       floatingActionButton: null,
     );
@@ -262,8 +286,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
               Text(
                 weather.cityName,
                 style: const TextStyle(
-                  color: Colors.black87,
-                  // color: Colors.white,
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
                 ),
@@ -271,8 +294,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
               const SizedBox(height: 4),
               Text(
                 weather.condition,
-                style: const TextStyle(color: Colors.black54, fontSize: 14),
-                // style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
@@ -295,8 +317,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
                   Text(
                     "${weather.temperature.toStringAsFixed(1)}°C",
                     style: const TextStyle(
-                      color: Colors.black,
-                      // color: Colors.white,
+                      color: Colors.white,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -310,7 +331,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
                       Text(
                         "${weather.windSpeed.toStringAsFixed(1)} km/h",
                         style: const TextStyle(
-                            color: Colors.black54, fontSize: 13),
+                            color: Colors.white70, fontSize: 13),
                       ),
                     ],
                   )
@@ -330,7 +351,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: Colors.white54,
+          color: Colors.white.withOpacity(0.2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),

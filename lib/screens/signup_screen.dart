@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
-import 'package:weather_app/screens/signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
-  Future<void> _login() async {
+  Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -28,14 +28,26 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // The StreamBuilder in main.dart will handle navigation
+      // After successful creation, sign the user out and pop back to the login screen.
+      if (userCredential.user != null) {
+        await FirebaseAuth.instance.signOut();
+        // Pop the screen to go back to the Login Page
+        if (mounted) Navigator.of(context).pop();
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = 'Failed to sign in. Please check your credentials.';
+        if (e.code == 'weak-password') {
+          _errorMessage = 'The password provided is too weak.';
+        } else if (e.code == 'email-already-in-use') {
+          _errorMessage = 'An account already exists for that email.';
+        } else {
+          _errorMessage = 'An error occurred. Please try again.';
+        }
       });
     } catch (e) {
       setState(() {
@@ -54,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -84,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'Welcome Back',
+                        'Create Account',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 32,
@@ -94,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Log in to your account',
+                        'Get started with your weather journey',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -120,9 +133,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             _inputDecoration('Password', Icons.lock_outline),
                         style: const TextStyle(color: Colors.white),
                         obscureText: true,
-                        validator: (value) => (value == null || value.isEmpty)
-                            ? 'Please enter your password'
-                            : null,
+                        validator: (value) =>
+                            (value == null || value.length < 6)
+                                ? 'Password must be at least 6 characters'
+                                : null,
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        decoration: _inputDecoration(
+                            'Confirm Password', Icons.lock_person_outlined),
+                        style: const TextStyle(color: Colors.white),
+                        obscureText: true,
+                        validator: (value) =>
+                            (value != _passwordController.text)
+                                ? 'Passwords do not match'
+                                : null,
                       ),
                       const SizedBox(height: 30),
                       if (_errorMessage != null)
@@ -140,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: CircularProgressIndicator(
                                   color: Colors.white))
                           : ElevatedButton(
-                              onPressed: _login,
+                              onPressed: _signUp,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal,
                                 padding:
@@ -149,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text('Login',
+                              child: const Text('Sign Up',
                                   style: TextStyle(
                                       fontSize: 18, color: Colors.white)),
                             ),
@@ -157,20 +183,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       Center(
                         child: RichText(
                           text: TextSpan(
-                            text: 'Don\'t have an account? ',
+                            text: 'Already have an account? ',
                             style: const TextStyle(color: Colors.white70),
                             children: [
                               TextSpan(
-                                text: 'Sign Up',
+                                text: 'Login',
                                 style: const TextStyle(
                                   color: Colors.tealAccent,
                                   fontWeight: FontWeight.bold,
                                 ),
                                 recognizer: TapGestureRecognizer()
-                                  ..onTap = () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const SignUpScreen())),
+                                  ..onTap = () => Navigator.of(context).pop(),
                               ),
                             ],
                           ),

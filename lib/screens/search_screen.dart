@@ -72,7 +72,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-
   Future<void> _clearRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('recent_cities');
@@ -105,29 +104,37 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final gradient = const LinearGradient(
-      colors: [Colors.indigo, Colors.blueAccent],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search City Weather'),
         centerTitle: true,
       ),
-      body: Container(
-        decoration: BoxDecoration(gradient: gradient),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSearchBar(),
-            const SizedBox(height: 12),
-            if (_recentSearches.isNotEmpty) _buildRecentSearches(),
-            const SizedBox(height: 16),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/welcome.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Container(color: Colors.black.withOpacity(0.4)),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 12),
+                  if (_recentSearches.isNotEmpty) _buildRecentSearches(),
+                  const SizedBox(height: 16),
+                  Expanded(child: _buildBody()),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
