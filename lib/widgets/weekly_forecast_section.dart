@@ -19,7 +19,7 @@ class WeeklyForecastSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 150,
+          height: 190,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: forecast.length,
