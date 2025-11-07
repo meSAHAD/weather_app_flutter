@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
@@ -98,6 +99,26 @@ class _CitiesScreenState extends State<CitiesScreen> {
             TextButton(
               onPressed: () async {
                 if (cityName.trim().isEmpty) return;
+
+                final alreadyExists = _cityNames.any((c) =>
+                    c.toLowerCase().trim() == cityName.toLowerCase().trim());
+                if (alreadyExists) {
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '$cityName is already added.',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.redAccent,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  return;
+                }
+
                 setState(() => _cityNames.add(cityName));
                 _saveCities();
                 await _fetchCitiesWeather();
@@ -114,59 +135,83 @@ class _CitiesScreenState extends State<CitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // 🟢 Page background white
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
         title: const Text('Cities'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
-            icon: Icon(_isEditMode ? Icons.done : Icons.edit),
+            icon: _loading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.teal,
+                    ),
+                  )
+                : const Icon(Icons.refresh, color: Colors.teal),
+            tooltip: 'Refresh Weather',
+            onPressed: _loading
+                ? null
+                : () async {
+                    setState(() => _loading = true);
+                    await _fetchCitiesWeather();
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Weather updated successfully!',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.teal,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+          ),
+          IconButton(
+            icon: Icon(
+              _isEditMode ? Icons.done : Icons.edit,
+              color: Colors.teal,
+            ),
+            tooltip: _isEditMode ? 'Done Editing' : 'Edit Cities',
             onPressed: () => setState(() => _isEditMode = !_isEditMode),
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF87CEFA),
-              Color(0xFFE0F7FA)
-            ], // light blue gradient
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : ReorderableListView.builder(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 80, horizontal: 12),
-                itemCount: _citiesWeather.length,
-                onReorderStart: (index) =>
-                    setState(() => _draggingIndex = index),
-                onReorderEnd: (_) => setState(() => _draggingIndex = null),
-                onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final city = _cityNames.removeAt(oldIndex);
-                    final weather = _citiesWeather.removeAt(oldIndex);
-                    _cityNames.insert(newIndex, city);
-                    _citiesWeather.insert(newIndex, weather);
-                  });
-                  _saveCities();
-                },
-                buildDefaultDragHandles: false,
-                itemBuilder: (context, index) {
-                  final weather = _citiesWeather[index];
-                  final isDragging = _draggingIndex == index;
-                  return Container(
-                    key: ValueKey('${weather.cityName}_$index'), // ✅ unique key
-                    child: _buildCityCard(weather, index, isDragging),
-                  );
-                },
-              ),
-      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+          : ReorderableListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 12),
+              itemCount: _citiesWeather.length,
+              onReorderStart: (index) => setState(() => _draggingIndex = index),
+              onReorderEnd: (_) => setState(() => _draggingIndex = null),
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final city = _cityNames.removeAt(oldIndex);
+                  final weather = _citiesWeather.removeAt(oldIndex);
+                  _cityNames.insert(newIndex, city);
+                  _citiesWeather.insert(newIndex, weather);
+                });
+                _saveCities();
+              },
+              buildDefaultDragHandles: false,
+              itemBuilder: (context, index) {
+                final weather = _citiesWeather[index];
+                final isDragging = _draggingIndex == index;
+                return Container(
+                  key: ValueKey('${weather.cityName}_$index'),
+                  child: _buildCityCard(weather, index, isDragging),
+                );
+              },
+            ),
       floatingActionButton: !_isEditMode
           ? FloatingActionButton(
               onPressed: _showAddCityDialog,
@@ -178,60 +223,123 @@ class _CitiesScreenState extends State<CitiesScreen> {
   }
 
   Widget _buildCityCard(Weather weather, int index, bool isDragging) {
-    return Dismissible(
-      key: Key('${weather.cityName}_$index'),
-      direction:
-          _isEditMode ? DismissDirection.endToStart : DismissDirection.none,
-      onDismissed: (direction) {
-        setState(() {
-          _cityNames.removeAt(index);
-          _citiesWeather.removeAt(index);
-          _saveCities();
-        });
-      },
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        color: Colors.redAccent,
-        child: const Icon(Icons.delete, color: Colors.white),
-      ),
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 200),
-        scale: isDragging ? 1.05 : 1.0,
-        child: Card(
-          elevation: 6,
-          shadowColor: Colors.black26,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Colors.white.withOpacity(0.9),
-          child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            title: Text(
-              weather.cityName,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+    final time = DateFormat('h:mm a').format(DateTime.now());
+
+    final cardContent = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // LEFT: City name & condition
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                weather.cityName,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
               ),
-            ),
-            subtitle: Text(
-              "${weather.temperature.toStringAsFixed(1)}°C  |  ${weather.condition}",
-              style: const TextStyle(color: Colors.black54, fontSize: 14),
-            ),
-            trailing: _isEditMode
-                ? ReorderableDragStartListener(
-                    index: index,
-                    child: const Icon(Icons.reorder, color: Colors.black45),
-                  )
-                : null,
-            onTap: () {
-              if (!_isEditMode) _showExpandedWeather(weather);
-            },
+              const SizedBox(height: 4),
+              Text(
+                weather.condition,
+                style: const TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+            ],
           ),
+
+          // RIGHT: Time, Temp, Wind
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "${weather.temperature.toStringAsFixed(1)}°C",
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                "Wind: ${weather.windSpeed.toStringAsFixed(1)} km/h",
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              
+            ],
+          ),
+
+        ],
+      ),
+    );
+
+    final decoratedCard = AnimatedScale(
+      duration: const Duration(milliseconds: 200),
+      scale: isDragging ? 1.05 : 1.0,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF80DEEA),
+              Color(0xFFB2EBF2), // light blue shades
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: !_isEditMode ? () => _showExpandedWeather(weather) : null,
+          child: cardContent,
         ),
       ),
     );
+
+    if (_isEditMode) {
+      return Dismissible(
+        key: Key('${weather.cityName}_$index'),
+        direction: DismissDirection.endToStart,
+        onDismissed: (direction) {
+          setState(() {
+            _cityNames.removeAt(index);
+            _citiesWeather.removeAt(index);
+            _saveCities();
+          });
+        },
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          color: Colors.redAccent,
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        child: Stack(
+          children: [
+            decoratedCard,
+            Positioned(
+              right: 8,
+              top: 8,
+              child: ReorderableDragStartListener(
+                index: index,
+                child: const Icon(Icons.reorder, color: Colors.black45),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return decoratedCard;
+    }
   }
 }
