@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui'; // Import for ImageFilter
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
@@ -119,10 +120,24 @@ class _CitiesScreenState extends State<CitiesScreen> {
                   return;
                 }
 
-                setState(() => _cityNames.add(cityName));
-                _saveCities();
-                await _fetchCitiesWeather();
                 if (mounted) Navigator.pop(context);
+
+                // Fetch weather for the new city and add it
+                try {
+                  final weather =
+                      await _weatherService.fetchWeather(cityName.trim());
+                  setState(() {
+                    _cityNames.add(cityName.trim());
+                    _citiesWeather.add(weather);
+                    _saveCities();
+                  });
+                } catch (e) {
+                  debugPrint(
+                      'Error fetching weather for new city $cityName: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Could not find weather for $cityName')));
+                }
               },
               child: const Text('Add', style: TextStyle(color: Colors.teal)),
             ),
@@ -134,15 +149,26 @@ class _CitiesScreenState extends State<CitiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const gradient = LinearGradient(
+      colors: [Colors.indigo, Colors.blueAccent],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
     return Scaffold(
-      backgroundColor: Colors.white, // 🟢 Page background white
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
-        title: const Text('Cities'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        title: const Text('Cities',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white54,
+        foregroundColor: Colors.white,
         actions: [
+          if (!_isEditMode)
+            IconButton(
+              icon: const Icon(Icons.add, color: Colors.black),
+              tooltip: 'Add City',
+              onPressed: _showAddCityDialog,
+            ),
           IconButton(
             icon: _loading
                 ? const SizedBox(
@@ -150,15 +176,14 @@ class _CitiesScreenState extends State<CitiesScreen> {
                     height: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.teal,
+                      color: Colors.black,
                     ),
                   )
-                : const Icon(Icons.refresh, color: Colors.teal),
+                : const Icon(Icons.refresh, color: Colors.black),
             tooltip: 'Refresh Weather',
             onPressed: _loading
                 ? null
                 : () async {
-                    setState(() => _loading = true);
                     await _fetchCitiesWeather();
 
                     if (mounted) {
@@ -168,7 +193,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
                             'Weather updated successfully!',
                             style: TextStyle(color: Colors.white),
                           ),
-                          backgroundColor: Colors.teal,
+                          backgroundColor: Colors.green,
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -178,53 +203,53 @@ class _CitiesScreenState extends State<CitiesScreen> {
           IconButton(
             icon: Icon(
               _isEditMode ? Icons.done : Icons.edit,
-              color: Colors.teal,
+              color: Colors.black,
             ),
             tooltip: _isEditMode ? 'Done Editing' : 'Edit Cities',
             onPressed: () => setState(() => _isEditMode = !_isEditMode),
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 12),
-              itemCount: _citiesWeather.length,
-              onReorderStart: (index) => setState(() => _draggingIndex = index),
-              onReorderEnd: (_) => setState(() => _draggingIndex = null),
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (newIndex > oldIndex) newIndex -= 1;
-                  final city = _cityNames.removeAt(oldIndex);
-                  final weather = _citiesWeather.removeAt(oldIndex);
-                  _cityNames.insert(newIndex, city);
-                  _citiesWeather.insert(newIndex, weather);
-                });
-                _saveCities();
-              },
-              buildDefaultDragHandles: false,
-              itemBuilder: (context, index) {
-                final weather = _citiesWeather[index];
-                final isDragging = _draggingIndex == index;
-                return Container(
-                  key: ValueKey('${weather.cityName}_$index'),
-                  child: _buildCityCard(weather, index, isDragging),
-                );
-              },
-            ),
-      floatingActionButton: !_isEditMode
-          ? FloatingActionButton(
-              onPressed: _showAddCityDialog,
-              backgroundColor: Colors.teal,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      body: Container(
+        decoration: const BoxDecoration(gradient: gradient),
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white))
+            : ReorderableListView.builder(
+                // Add padding to avoid content being hidden by the nav bar
+                padding: const EdgeInsets.only(
+                  top: 16,
+                  left: 12,
+                  right: 12,
+                  bottom: 120, // Space for the floating navigation bar
+                ),
+                itemCount: _citiesWeather.length,
+                onReorderStart: (index) =>
+                    setState(() => _draggingIndex = index),
+                onReorderEnd: (_) => setState(() => _draggingIndex = null),
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final city = _cityNames.removeAt(oldIndex);
+                    final weather = _citiesWeather.removeAt(oldIndex);
+                    _cityNames.insert(newIndex, city);
+                    _citiesWeather.insert(newIndex, weather);
+                  });
+                  _saveCities();
+                },
+                buildDefaultDragHandles: false,
+                itemBuilder: (context, index) {
+                  final weather = _citiesWeather[index];
+                  final isDragging = _draggingIndex == index;
+                  return _buildCityCard(weather, index, isDragging);
+                },
+              ),
+      ),
+      floatingActionButton: null,
     );
   }
 
   Widget _buildCityCard(Weather weather, int index, bool isDragging) {
-    final time = DateFormat('h:mm a').format(DateTime.now());
-
     final cardContent = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -238,6 +263,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
                 weather.cityName,
                 style: const TextStyle(
                   color: Colors.black87,
+                  // color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
                 ),
@@ -246,54 +272,68 @@ class _CitiesScreenState extends State<CitiesScreen> {
               Text(
                 weather.condition,
                 style: const TextStyle(color: Colors.black54, fontSize: 14),
+                // style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
 
-          // RIGHT: Time, Temp, Wind
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          // RIGHT: Icon, Temp, Wind
+          Row(
             children: [
-              Text(
-                "${weather.temperature.toStringAsFixed(1)}°C",
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+              Image.network(
+                weather.iconUrl,
+                width: 50,
+                height: 50,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.cloud, size: 40, color: Colors.white70),
               ),
-              const SizedBox(height: 2),
-              Text(
-                "Wind: ${weather.windSpeed.toStringAsFixed(1)} km/h",
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "${weather.temperature.toStringAsFixed(1)}°C",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      // color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.air_rounded,
+                          color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        "${weather.windSpeed.toStringAsFixed(1)} km/h",
+                        style: const TextStyle(
+                            color: Colors.black54, fontSize: 13),
+                      ),
+                    ],
+                  )
+                ],
               ),
-              const SizedBox(height: 4),
-              
             ],
           ),
-
         ],
       ),
     );
 
     final decoratedCard = AnimatedScale(
+      key: ValueKey(weather.cityName),
       duration: const Duration(milliseconds: 200),
       scale: isDragging ? 1.05 : 1.0,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF80DEEA),
-              Color(0xFFB2EBF2), // light blue shades
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.white.withOpacity(0.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -309,7 +349,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
 
     if (_isEditMode) {
       return Dismissible(
-        key: Key('${weather.cityName}_$index'),
+        key: ValueKey('dismissible_${weather.cityName}'),
         direction: DismissDirection.endToStart,
         onDismissed: (direction) {
           setState(() {
@@ -321,7 +361,11 @@ class _CitiesScreenState extends State<CitiesScreen> {
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          color: Colors.redAccent,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.redAccent,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
         child: Stack(
@@ -332,7 +376,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
               top: 8,
               child: ReorderableDragStartListener(
                 index: index,
-                child: const Icon(Icons.reorder, color: Colors.black45),
+                child: const Icon(Icons.reorder, color: Colors.white70),
               ),
             ),
           ],

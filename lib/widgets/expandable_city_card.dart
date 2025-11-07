@@ -74,8 +74,9 @@ class ExpandableCityCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _infoTile(Icons.air, '${weather.windSpeed} km/h', 'Wind'),
+              _infoTile(Icons.thermostat,
+                  '${weather.feelsLike.toStringAsFixed(1)}°C', 'Feels Like'),
               _infoTile(Icons.water_drop, '${weather.rainChance} mm', 'Rain'),
-              _infoTile(Icons.cloud, weather.condition, 'Condition'),
             ],
           ),
 

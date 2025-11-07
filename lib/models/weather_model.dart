@@ -4,6 +4,7 @@ class Weather {
   final double windSpeed;
   final double rainChance;
   final String condition;
+  final String iconUrl; // ✅ Add current weather icon
   final List<ForecastDay> forecast;
   final List<HourlyForecast> hourly;
 
@@ -18,6 +19,7 @@ class Weather {
     required this.windSpeed,
     required this.rainChance,
     required this.condition,
+    required this.iconUrl,
     required this.forecast,
     required this.hourly,
     required this.feelsLike,
@@ -41,6 +43,9 @@ class Weather {
       windSpeed: (json['current']?['wind_kph'] ?? 0).toDouble(),
       rainChance: (json['current']?['precip_mm'] ?? 0).toDouble(),
       condition: json['current']?['condition']?['text'] ?? 'Unknown',
+      iconUrl: json['current']?['condition']?['icon'] == null
+          ? ''
+          : "https:${json['current']['condition']['icon']}",
       forecast: forecastList.map((f) => ForecastDay.fromJson(f)).toList(),
       hourly: hourlyList.map((h) => HourlyForecast.fromJson(h)).toList(),
       // ✅ new fields
