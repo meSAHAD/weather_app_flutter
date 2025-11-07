@@ -15,16 +15,21 @@ class HourlyForecastSection extends StatelessWidget {
         const Text(
           'Hourly Forecast (Today)',
           style: TextStyle(
-              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 12),
         hourly.isEmpty
             ? const Center(
-                child: Text('No hourly data available',
-                    style: TextStyle(color: Colors.white)),
+                child: Text(
+                  'No hourly data available',
+                  style: TextStyle(color: Colors.white),
+                ),
               )
             : SizedBox(
-                height: 150,
+                height: 170, // a bit higher for the bigger cards
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: hourly.length,
