@@ -7,6 +7,7 @@ environment:
   sdk: '>=3.0.1 <4.0.0'
 
 dependencies:
+  shared_preferences: ^2.2.2
   cupertino_icons: # cupertino icons
   get: ^4.7.2 # for state management and context less stuff
   logger: # log events in clear way insted of (print)
@@ -14,7 +15,7 @@ dependencies:
   dio: ^5.9.0 # for api requests
   http_mock_adapter: # mocking dio for testing
   pretty_dio_logger: # for dio api logging and debugging
-  shared_preferences: # shared preferences persistence key value store
+  # shared_preferences: # shared preferences persistence key value store
   location: ^8.0.1 # for location
   flutter_launcher_icons: # change app icon
   flutter_svg: # for svg icons

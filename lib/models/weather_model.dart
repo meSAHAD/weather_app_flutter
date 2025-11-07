@@ -7,6 +7,11 @@ class Weather {
   final List<ForecastDay> forecast;
   final List<HourlyForecast> hourly;
 
+  // ✅ Newly added fields
+  final double feelsLike;
+  final double minTemp;
+  final double maxTemp;
+
   Weather({
     required this.cityName,
     required this.temperature,
@@ -15,23 +20,33 @@ class Weather {
     required this.condition,
     required this.forecast,
     required this.hourly,
+    required this.feelsLike,
+    required this.minTemp,
+    required this.maxTemp,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) {
     final forecastList = (json['forecast']?['forecastday'] as List?) ?? [];
     final hourlyList =
-        forecastList.isNotEmpty ? (forecastList[0]['hour'] as List?) : [];
+        forecastList.isNotEmpty ? (forecastList[0]['hour'] as List?) ?? [] : [];
+
+    // ✅ today's forecast summary (for min/max)
+    final todayDay = forecastList.isNotEmpty
+        ? forecastList[0]['day'] as Map<String, dynamic>?
+        : null;
 
     return Weather(
-      cityName: json['location']['name'] ?? 'Unknown',
-      temperature: (json['current']['temp_c'] ?? 0).toDouble(),
-      windSpeed: (json['current']['wind_kph'] ?? 0).toDouble(),
-      rainChance: (json['current']['precip_mm'] ?? 0).toDouble(),
-      condition: json['current']['condition']?['text'] ?? 'Unknown',
+      cityName: json['location']?['name'] ?? 'Unknown',
+      temperature: (json['current']?['temp_c'] ?? 0).toDouble(),
+      windSpeed: (json['current']?['wind_kph'] ?? 0).toDouble(),
+      rainChance: (json['current']?['precip_mm'] ?? 0).toDouble(),
+      condition: json['current']?['condition']?['text'] ?? 'Unknown',
       forecast: forecastList.map((f) => ForecastDay.fromJson(f)).toList(),
-      hourly: hourlyList != null
-          ? hourlyList.map((h) => HourlyForecast.fromJson(h)).toList()
-          : [],
+      hourly: hourlyList.map((h) => HourlyForecast.fromJson(h)).toList(),
+      // ✅ new fields
+      feelsLike: (json['current']?['feelslike_c'] ?? 0).toDouble(),
+      minTemp: (todayDay?['mintemp_c'] ?? 0).toDouble(),
+      maxTemp: (todayDay?['maxtemp_c'] ?? 0).toDouble(),
     );
   }
 }
