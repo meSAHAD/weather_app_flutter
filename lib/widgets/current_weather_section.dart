@@ -9,29 +9,67 @@ class CurrentWeatherSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.white.withOpacity(0.9),
+      color: Colors.white.withOpacity(1.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+        padding: const EdgeInsets.all(22.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              weather.cityName,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
+            // Left side: City name + Condition
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  weather.cityName,
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  weather.condition,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              weather.condition,
-              style: const TextStyle(fontSize: 18),
+
+            // Right side: Temp + Wind + Rain
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '🌡️ ${weather.temperature}°C',
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '💨 Wind:${weather.windSpeed} km/h',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '☔ Rain:${weather.rainChance} mm',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text('🌡️ Temp: ${weather.temperature}°C'),
-            Text('💨 Wind: ${weather.windSpeed} km/h'),
-            Text('☔ Rain: ${weather.rainChance} mm'),
           ],
         ),
       ),
