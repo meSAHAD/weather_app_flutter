@@ -330,7 +330,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
         margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white54,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -372,8 +372,8 @@ class _CitiesScreenState extends State<CitiesScreen> {
           children: [
             decoratedCard,
             Positioned(
-              right: 8,
-              top: 8,
+              right: 12,
+              top: 12,
               child: ReorderableDragStartListener(
                 index: index,
                 child: const Icon(Icons.reorder, color: Colors.white70),
