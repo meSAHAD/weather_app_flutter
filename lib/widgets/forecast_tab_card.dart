@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/weather_model.dart';
-import 'hourly_card.dart';
-import 'forecast_card.dart';
+import 'hourly_forecast_section.dart';
+import 'weekly_forecast_section.dart';
 
 class ForecastTabCard extends StatefulWidget {
   final Weather weather;
@@ -24,57 +24,48 @@ class _ForecastTabCardState extends State<ForecastTabCard>
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white.withOpacity(0.9),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          TabBar(
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: TabBar(
             controller: _tabController,
-            indicatorColor: Colors.blueAccent,
-            labelColor: Colors.blueAccent,
-            unselectedLabelColor: Colors.black54,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicatorPadding: EdgeInsets.zero,
+            indicator: BoxDecoration(
+              color: Colors.teal.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(20),
+            ),
             tabs: const [
               Tab(text: 'Hourly'),
-              Tab(text: 'Weekly'),
+              Tab(text: '7 Days'),
             ],
           ),
-          SizedBox(
-            height: 200,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _hourlyView(),
-                _weeklyView(),
-              ],
-            ),
+        ),
+        SizedBox(
+          // Adjust height to fit the new list view style
+          height: MediaQuery.of(context).size.height * 0.4,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              HourlyForecastTab(
+                hourly: widget.weather.hourly,
+                isTransparent: true,
+              ),
+              WeeklyForecastTab(
+                forecast: widget.weather.forecast,
+                isTransparent: true,
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _hourlyView() {
-    final hourly = widget.weather.hourly;
-    if (hourly.isEmpty) {
-      return const Center(child: Text('No hourly data'));
-    }
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: hourly.length,
-      itemBuilder: (context, index) => HourlyCard(hour: hourly[index]),
-    );
-  }
-
-  Widget _weeklyView() {
-    final forecast = widget.weather.forecast;
-    if (forecast.isEmpty) {
-      return const Center(child: Text('No forecast data'));
-    }
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      itemCount: forecast.length,
-      itemBuilder: (context, index) => ForecastCard(day: forecast[index]),
+        ),
+      ],
     );
   }
 }

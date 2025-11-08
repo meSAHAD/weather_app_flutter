@@ -28,10 +28,12 @@ dependencies:
   step_progress_indicator: # for progress indicator
   lottie: # for Adobe After Effects animations
   flutter_animate: # for animation
-  firebase_core: ^3.3.0
-  firebase_auth: ^5.3.0
+  # firebase_core: ^3.3.0
+  # firebase_auth: ^5.3.0
   google_sign_in: ^6.2.1
-
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.1.0
 
   flutter:
     sdk: flutter

@@ -4,14 +4,14 @@ class Weather {
   final double windSpeed;
   final double rainChance;
   final String condition;
-  final String iconUrl; // ✅ Add current weather icon
+  final String iconUrl;
   final List<ForecastDay> forecast;
   final List<HourlyForecast> hourly;
-
-  // ✅ Newly added fields
   final double feelsLike;
   final double minTemp;
   final double maxTemp;
+  final bool isDay;
+  final double humidity;
 
   Weather({
     required this.cityName,
@@ -25,6 +25,8 @@ class Weather {
     required this.feelsLike,
     required this.minTemp,
     required this.maxTemp,
+    required this.isDay,
+    required this.humidity,
   });
 
   factory Weather.fromJson(Map<String, dynamic> json) {
@@ -32,9 +34,8 @@ class Weather {
     final hourlyList =
         forecastList.isNotEmpty ? (forecastList[0]['hour'] as List?) ?? [] : [];
 
-    // ✅ today's forecast summary (for min/max)
     final todayDay = forecastList.isNotEmpty
-        ? forecastList[0]['day'] as Map<String, dynamic>?
+        ? (forecastList[0]['day'] as Map<String, dynamic>?)
         : null;
 
     return Weather(
@@ -48,16 +49,16 @@ class Weather {
           : "https:${json['current']['condition']['icon']}",
       forecast: forecastList.map((f) => ForecastDay.fromJson(f)).toList(),
       hourly: hourlyList.map((h) => HourlyForecast.fromJson(h)).toList(),
-      // ✅ new fields
       feelsLike: (json['current']?['feelslike_c'] ?? 0).toDouble(),
       minTemp: (todayDay?['mintemp_c'] ?? 0).toDouble(),
       maxTemp: (todayDay?['maxtemp_c'] ?? 0).toDouble(),
+      isDay: (json['current']?['is_day'] ?? 1) == 1,
+      humidity: (json['current']?['humidity'] ?? 0).toDouble(),
     );
   }
-
-  get humidity => null;
 }
 
+/// ✅ Forecast for upcoming days
 class ForecastDay {
   final String date;
   final double maxTemp;
@@ -87,6 +88,7 @@ class ForecastDay {
   }
 }
 
+/// ✅ Hourly forecast for today
 class HourlyForecast {
   final String time;
   final double temp;
