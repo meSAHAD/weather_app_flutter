@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'cities_screen.dart';
-import 'accounts_screen.dart'; // Import the new AccountsScreen
+import 'accounts_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -11,78 +11,157 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  double _targetX = 0;
+  double _currentX = 0;
 
   final List<Widget> _screens = const [
     HomeScreen(),
     SearchScreen(),
     CitiesScreen(),
-    AccountsScreen(), // Add the new AccountsScreen
+    AccountsScreen(),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(() {
+        setState(() {
+          _currentX = _animation.value;
+        });
+      });
+  }
+
+  void _onItemTapped(int index) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = screenWidth / _screens.length;
+    _targetX = (index * itemWidth) + (itemWidth / 2);
+    _animation = Tween<double>(begin: _currentX, end: _targetX)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward(from: 0);
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = screenWidth / _screens.length;
+
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
-      // Make the nav bar float over the body
       extendBody: true,
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: [
-              BoxShadow(
-                blurRadius: 20,
-                color: Colors.black.withOpacity(.15),
-              )
-            ],
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
-              child: BottomNavigationBar(
-                currentIndex: _selectedIndex,
-                onTap: (index) => setState(() => _selectedIndex = index),
-                selectedItemColor: Colors.teal,
-                unselectedItemColor: Colors.grey,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                type: BottomNavigationBarType.fixed,
-                showUnselectedLabels: false,
-                showSelectedLabels: true,
-                iconSize: 26, // Make default icons bigger
-                selectedIconTheme: const IconThemeData(
-                    size: 32), // Make active icon even bigger
-                items: [
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.home_outlined),
-                      activeIcon: const Icon(Icons.home),
-                      label: 'Home'),
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.search_outlined),
-                      activeIcon: const Icon(Icons.search),
-                      label: 'Search'),
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.location_city_outlined),
-                      activeIcon: const Icon(Icons.location_city),
-                      label: 'Cities'),
-                  BottomNavigationBarItem(
-                      icon: const Icon(Icons.person_outline),
-                      activeIcon: const Icon(Icons.person),
-                      label: 'Accounts'),
-                ],
-              ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
+      bottomNavigationBar: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CustomPaint(
+            painter: _CurvedNavPainter(_currentX),
+            child: Container(
+              height: 80,
+              color: Colors.transparent,
             ),
           ),
-        ),
+          Positioned.fill(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(_screens.length, (index) {
+                final icons = [
+                  Icons.home_rounded,
+                  Icons.search_rounded,
+                  Icons.location_city_rounded,
+                  Icons.person_rounded,
+                ];
+                final labels = ["Home", "Search", "Cities", "Account"];
+                final isSelected = _selectedIndex == index;
+
+                return GestureDetector(
+                  onTap: () => _onItemTapped(index),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                        height: isSelected ? 50 : 40,
+                        width: isSelected ? 50 : 40,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.blue : Colors.transparent,
+                          shape: BoxShape.circle,
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.blue.withOpacity(0.4),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  )
+                                ]
+                              : [],
+                        ),
+                        child: Icon(
+                          icons[index],
+                          color: isSelected ? Colors.white : Colors.black54,
+                          size: isSelected ? 26 : 24,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        labels[index],
+                        style: TextStyle(
+                          color: isSelected ? Colors.blue : Colors.black54,
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
+
+class _CurvedNavPainter extends CustomPainter {
+  final double centerX;
+  _CurvedNavPainter(this.centerX);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white10
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    const double curveHeight = 35;
+    final double width = size.width;
+    final double height = size.height;
+
+    path.moveTo(0, 0);
+    path.lineTo(centerX - 45, 0);
+    path.quadraticBezierTo(centerX, -curveHeight, centerX + 45, 0);
+    path.lineTo(width, 0);
+    path.lineTo(width, height);
+    path.lineTo(0, height);
+    path.close();
+
+    canvas.drawShadow(path, Colors.black26, 10, true);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CurvedNavPainter oldDelegate) {
+    return oldDelegate.centerX != centerX;
   }
 }

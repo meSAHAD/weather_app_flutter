@@ -1,8 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
-import '../utils/weather_background.dart';
 import '../widgets/forecast_tab_card.dart';
+import '../utils/weather_background.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,17 +39,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final gradient = _weather == null
         ? const LinearGradient(
-            colors: [Colors.blueGrey, Colors.lightBlueAccent])
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF5B86E5), Color(0xFF36D1DC)],
+          )
         : WeatherBackground.getGradient(_weather!.condition);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Weather - Barisal'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Weather',
+          style: TextStyle(fontSize: 20, color: Colors.white),
+        ),
         centerTitle: true,
       ),
       body: Container(
         decoration: BoxDecoration(gradient: gradient),
-        padding: const EdgeInsets.all(16),
         child: _loading
             ? const Center(
                 child: CircularProgressIndicator(color: Colors.white))
@@ -56,61 +65,116 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? const Center(
                     child: Text('Failed to load weather',
                         style: TextStyle(color: Colors.white)))
-                : ListView(
-                    children: [
-                      Center(
-                        child: Column(
-                          children: [
-                            Text(
-                              _weather!.cityName,
-                              style: const TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _weather!.condition,
-                              style: const TextStyle(
-                                  fontSize: 20, color: Colors.white70),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${_weather!.temperature.toStringAsFixed(1)}°C',
-                              style: const TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                _infoItem(
-                                    '💨 Wind', '${_weather!.windSpeed} km/h'),
-                                _infoItem('☁️ Clouds', _weather!.condition),
-                                _infoItem('☔ Rain', '${_weather!.rainChance}%'),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            ForecastTabCard(weather: _weather!),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                : _buildWeatherContent(),
       ),
     );
   }
 
-  Widget _infoItem(String label, String value) {
-    return Column(
+  Widget _buildWeatherContent() {
+    final w = _weather!;
+    return Stack(
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70)),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+        // Background sun or scenic illustration
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/welcome.png', // use your scenic bg
+            fit: BoxFit.cover,
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.black.withOpacity(0.1), Colors.transparent],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 100),
+            child: Column(
+              children: [
+                Text(
+                  w.cityName,
+                  style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${w.temperature?.toStringAsFixed(1) ?? '--'}°',
+                  style: const TextStyle(
+                      fontSize: 90,
+                      fontWeight: FontWeight.w200,
+                      color: Colors.white),
+                ),
+                Text(
+                  'Morning, ${w.condition}',
+                  style: const TextStyle(
+                      fontSize: 18, color: Colors.white70, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'H: ${w.maxTemp?.toStringAsFixed(0) ?? '--'}°  L: ${w.minTemp?.toStringAsFixed(0) ?? '--'}°',
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Bottom curved forecast section
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(40)),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    _buildForecastTabs(),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ForecastTabCard(weather: w),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildForecastTabs() {
+    return DefaultTabController(
+      length: 3,
+      child: TabBar(
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white70,
+        indicatorColor: Colors.white,
+        tabs: const [
+          Tab(text: 'Today'),
+          Tab(text: 'Tomorrow'),
+          Tab(text: 'Next 7 Days'),
+        ],
+      ),
     );
   }
 }

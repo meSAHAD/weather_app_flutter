@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
-import '../widgets/forecast_tab_card.dart';
+import '../widgets/hourly_forecast_section.dart';
+import '../widgets/weekly_forecast_section.dart';
 import '../utils/notifiers.dart'; // ✅ add this import
 
 class SearchScreen extends StatefulWidget {
@@ -227,64 +228,156 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     final w = _weather!;
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          Text(
-            w.cityName,
-            style: const TextStyle(
-                fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            w.condition,
-            style: const TextStyle(fontSize: 18, color: Colors.white70),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${w.temperature.toStringAsFixed(1)}°C',
-            style: const TextStyle(
-                fontSize: 42, color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return _WeatherDetailsView(
+        weather: w, onAddToCities: () => _addToCities(w.cityName));
+  }
+
+  Widget _infoTile(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white70, size: 26),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+              fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
+        ),
+      ],
+    );
+  }
+}
+
+class _WeatherDetailsView extends StatelessWidget {
+  final Weather weather;
+  final VoidCallback onAddToCities;
+
+  const _WeatherDetailsView(
+      {required this.weather, required this.onAddToCities});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Column(
             children: [
-              _infoItem('💨 Wind', '${w.windSpeed} km/h'),
-              _infoItem('☔ Rain', '${w.rainChance}%'),
+              // City and temperature
+              Text(
+                weather.cityName,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${weather.temperature.toStringAsFixed(1)}°C',
+                style: const TextStyle(
+                  fontSize: 60,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                weather.condition,
+                style: const TextStyle(fontSize: 18, color: Colors.white70),
+              ),
+              const SizedBox(height: 24),
+
+              // Weather details
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _infoTile(Icons.air, '${weather.windSpeed} km/h', 'Wind'),
+                  _infoTile(
+                      Icons.thermostat,
+                      '${weather.feelsLike.toStringAsFixed(1)}°C',
+                      'Feels Like'),
+                  _infoTile(
+                      Icons.water_drop, '${weather.rainChance} mm', 'Rain'),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Tabs for Hourly / Weekly
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TabBar(
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: EdgeInsets.zero,
+                  indicator: BoxDecoration(
+                    color: Colors.teal.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  tabs: const [
+                    Tab(text: 'Hourly'),
+                    Tab(text: '7 Days'),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 190,
+                child: TabBarView(
+                  children: [
+                    HourlyForecastTab(
+                        hourly: weather.hourly, isTransparent: true),
+                    WeeklyForecastTab(
+                        forecast: weather.forecast, isTransparent: true),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: onAddToCities,
+                icon: const Icon(Icons.add_location_alt_outlined),
+                label: const Text('Add to Cities'),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          ForecastTabCard(weather: w),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.blue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            onPressed: () => _addToCities(w.cityName),
-            icon: const Icon(Icons.add_location_alt_outlined),
-            label: const Text('Add to Cities'),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _infoItem(String label, String value) {
+  Widget _infoTile(IconData icon, String value, String label) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white70)),
-        const SizedBox(height: 4),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16)),
+        Icon(icon, color: Colors.white70, size: 28),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+              fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 2),
+        Text(label,
+            style: const TextStyle(fontSize: 13, color: Colors.white70)),
       ],
     );
   }

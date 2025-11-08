@@ -54,6 +54,8 @@ class Weather {
       maxTemp: (todayDay?['maxtemp_c'] ?? 0).toDouble(),
     );
   }
+
+  get humidity => null;
 }
 
 class ForecastDay {

@@ -4,13 +4,18 @@ import 'package:intl/intl.dart';
 
 class HourlyForecastTab extends StatelessWidget {
   final List<HourlyForecast> hourly;
+  final bool isTransparent;
 
-  const HourlyForecastTab({super.key, required this.hourly});
+  const HourlyForecastTab({
+    super.key,
+    required this.hourly,
+    this.isTransparent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (hourly.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No hourly data available',
           style: TextStyle(color: Colors.black54),
@@ -31,7 +36,7 @@ class HourlyForecastTab extends StatelessWidget {
     }).toList();
 
     if (filtered.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No upcoming hourly data available',
           style: TextStyle(color: Colors.black54),
@@ -64,6 +69,10 @@ class HourlyForecastTab extends StatelessWidget {
           displayTime = h.time.split(' ').last;
         }
 
+        final textColor = isTransparent ? Colors.white : Colors.black87;
+        final subTextColor =
+            isTransparent ? Colors.white70 : Colors.blueGrey.shade700;
+
         final BoxDecoration decoration = isNow
             ? BoxDecoration(
                 gradient: const LinearGradient(
@@ -81,7 +90,9 @@ class HourlyForecastTab extends StatelessWidget {
                 ],
               )
             : BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: isTransparent
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: const [
                   BoxShadow(
@@ -94,7 +105,7 @@ class HourlyForecastTab extends StatelessWidget {
 
         return Container(
           decoration: decoration,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -115,7 +126,7 @@ class HourlyForecastTab extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: isNow ? Colors.white : Colors.black87,
+                          color: isNow ? Colors.white : textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -123,8 +134,7 @@ class HourlyForecastTab extends StatelessWidget {
                         h.condition,
                         style: TextStyle(
                           fontSize: 13,
-                          color:
-                              isNow ? Colors.white70 : Colors.blueGrey.shade700,
+                          color: isNow ? Colors.white70 : subTextColor,
                         ),
                       ),
                     ],
@@ -139,14 +149,14 @@ class HourlyForecastTab extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: isNow ? Colors.white : Colors.black87,
+                      color: isNow ? Colors.white : textColor,
                     ),
                   ),
                   Text(
                     '${h.chanceOfRain.toStringAsFixed(0)}%',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isNow ? Colors.white70 : Colors.blueGrey,
+                      color: isNow ? Colors.white70 : subTextColor,
                     ),
                   ),
                 ],

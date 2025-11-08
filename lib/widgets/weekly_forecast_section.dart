@@ -4,13 +4,18 @@ import 'package:intl/intl.dart';
 
 class WeeklyForecastTab extends StatelessWidget {
   final List<ForecastDay> forecast;
+  final bool isTransparent;
 
-  const WeeklyForecastTab({super.key, required this.forecast});
+  const WeeklyForecastTab({
+    super.key,
+    required this.forecast,
+    this.isTransparent = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (forecast.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No forecast data available',
           style: TextStyle(color: Colors.black54),
@@ -38,9 +43,17 @@ class WeeklyForecastTab extends StatelessWidget {
 
         final isToday = f.date == today;
 
+        final textColor = isTransparent ? Colors.white : Colors.black87;
+        final subTextColor =
+            isTransparent ? Colors.white70 : Colors.blueGrey.shade700;
+
         return Container(
           decoration: BoxDecoration(
-            color: isToday ? Colors.teal.withOpacity(0.9) : Colors.white,
+            color: isToday
+                ? Colors.teal.withOpacity(0.9)
+                : (isTransparent
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.white),
             borderRadius: BorderRadius.circular(14),
             boxShadow: const [
               BoxShadow(
@@ -50,7 +63,7 @@ class WeeklyForecastTab extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -71,7 +84,7 @@ class WeeklyForecastTab extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: isToday ? Colors.white : Colors.black87,
+                          color: isToday ? Colors.white : textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -79,9 +92,7 @@ class WeeklyForecastTab extends StatelessWidget {
                         f.condition,
                         style: TextStyle(
                           fontSize: 13,
-                          color: isToday
-                              ? Colors.white70
-                              : Colors.blueGrey.shade700,
+                          color: isToday ? Colors.white70 : subTextColor,
                         ),
                       ),
                     ],
@@ -96,14 +107,14 @@ class WeeklyForecastTab extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isToday ? Colors.white : Colors.black87,
+                      color: isToday ? Colors.white : textColor,
                     ),
                   ),
                   Text(
                     '${f.rainChance.toStringAsFixed(0)}%',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isToday ? Colors.white70 : Colors.blueGrey,
+                      color: isToday ? Colors.white70 : subTextColor,
                     ),
                   ),
                 ],
