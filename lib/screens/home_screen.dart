@@ -72,93 +72,67 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildWeatherContent() {
     final w = _weather!;
-    return Stack(
-      children: [
-        // Background sun or scenic illustration
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/welcome.png', // use your scenic bg
-            fit: BoxFit.cover,
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.black.withOpacity(0.1), Colors.transparent],
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-            ),
-          ),
-        ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 100),
-            child: Column(
-              children: [
-                Text(
-                  w.cityName,
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${w.temperature?.toStringAsFixed(1) ?? '--'}°',
-                  style: const TextStyle(
-                      fontSize: 90,
-                      fontWeight: FontWeight.w200,
-                      color: Colors.white),
-                ),
-                Text(
-                  'Morning, ${w.condition}',
-                  style: const TextStyle(
-                      fontSize: 18, color: Colors.white70, letterSpacing: 0.5),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'H: ${w.maxTemp?.toStringAsFixed(0) ?? '--'}°  L: ${w.minTemp?.toStringAsFixed(0) ?? '--'}°',
-                  style: const TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        ),
+    final screenHeight = MediaQuery.of(context).size.height;
 
-        // Bottom curved forecast section
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                height: 280,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(40)),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
-                    width: 1,
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: screenHeight),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // Top weather info
+              Text(
+                w.cityName,
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${w.temperature?.toStringAsFixed(1) ?? '--'}°',
+                style: const TextStyle(
+                    fontSize: 90,
+                    fontWeight: FontWeight.w200,
+                    color: Colors.white),
+              ),
+              Text(
+                '${w.condition}',
+                style: const TextStyle(
+                    fontSize: 18, color: Colors.white70, letterSpacing: 0.5),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'H: ${w.maxTemp?.toStringAsFixed(0) ?? '--'}°  L: ${w.minTemp?.toStringAsFixed(0) ?? '--'}°',
+                style: const TextStyle(fontSize: 16, color: Colors.white70),
+              ),
+              const SizedBox(height: 30),
+
+              // Bottom forecast section
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(40)),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    width: double.infinity,
+                    color: Colors.white.withOpacity(0.2),
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      children: [
+                        _buildForecastTabs(),
+                        const SizedBox(height: 8),
+                        ForecastTabCard(weather: w),
+                      ],
+                    ),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    _buildForecastTabs(),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ForecastTabCard(weather: w),
-                    ),
-                  ],
-                ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
