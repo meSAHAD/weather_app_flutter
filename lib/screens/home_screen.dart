@@ -117,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
                     width: double.infinity,
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withOpacity(0.1),
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Column(
                       children: [
