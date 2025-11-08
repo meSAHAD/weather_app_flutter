@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui'; // Import for ImageFilter
-import 'package:intl/intl.dart';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/weather_model.dart';
 import '../services/weather_service.dart';
@@ -20,7 +19,8 @@ class _CitiesScreenState extends State<CitiesScreen> {
   List<Weather> _citiesWeather = [];
   bool _loading = true;
   bool _isEditMode = false;
-  int? _draggingIndex;
+
+  static const double _expandedHeaderHeight = 180.0;
 
   @override
   void initState() {
@@ -38,16 +38,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
   Future<void> _loadCities() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getStringList('saved_cities') ??
-        [
-          'Dhaka',
-          'Chittagong',
-          'Khulna',
-          'Rajshahi',
-          'Barisal',
-          'Sylhet',
-          'Rangpur',
-          'Mymensingh'
-        ];
+        ['Dhaka', 'Chittagong', 'Khulna', 'Rajshahi', 'Sylhet'];
     _cityNames = saved;
     await _fetchCitiesWeather();
   }
@@ -59,9 +50,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
       try {
         final weather = await _weatherService.fetchWeather(city);
         _citiesWeather.add(weather);
-      } catch (e) {
-        debugPrint('Error fetching weather for $city: $e');
-      }
+      } catch (_) {}
     }
     setState(() => _loading = false);
   }
@@ -76,7 +65,7 @@ class _CitiesScreenState extends State<CitiesScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ExpandableCityCard(weather: weather),
+      builder: (_) => ExpandableCityCard(weather: weather),
     );
   }
 
@@ -86,52 +75,21 @@ class _CitiesScreenState extends State<CitiesScreen> {
       builder: (context) {
         String cityName = '';
         return AlertDialog(
-          backgroundColor: Colors.white,
-          title:
-              const Text('Add City', style: TextStyle(color: Colors.black87)),
+          title: const Text('Add City'),
           content: TextField(
-            style: const TextStyle(color: Colors.black87),
-            decoration: const InputDecoration(
-              hintText: 'Enter city name',
-              hintStyle: TextStyle(color: Colors.black54),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.teal),
-              ),
-            ),
+            decoration: const InputDecoration(hintText: 'Enter city name'),
             onChanged: (val) => cityName = val,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child:
-                  const Text('Cancel', style: TextStyle(color: Colors.black54)),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
                 if (cityName.trim().isEmpty) return;
+                Navigator.pop(context);
 
-                final alreadyExists = _cityNames.any((c) =>
-                    c.toLowerCase().trim() == cityName.toLowerCase().trim());
-                if (alreadyExists) {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '$cityName is already added.',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        backgroundColor: Colors.redAccent,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                  return;
-                }
-
-                if (mounted) Navigator.pop(context);
-
-                // Fetch weather for the new city and add it
                 try {
                   final weather =
                       await _weatherService.fetchWeather(cityName.trim());
@@ -140,15 +98,13 @@ class _CitiesScreenState extends State<CitiesScreen> {
                     _citiesWeather.add(weather);
                     _saveCities();
                   });
-                } catch (e) {
-                  debugPrint(
-                      'Error fetching weather for new city $cityName: $e');
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('Could not find weather for $cityName')));
+                } catch (_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('City not found: $cityName')),
+                  );
                 }
               },
-              child: const Text('Add', style: TextStyle(color: Colors.teal)),
+              child: const Text('Add'),
             ),
           ],
         );
@@ -159,70 +115,6 @@ class _CitiesScreenState extends State<CitiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Allow the body to extend behind the app bar for the blur effect
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text('Cities',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        // Make AppBar transparent to see the blur effect
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        // Add the blur effect to the AppBar's background
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.black.withOpacity(0.1)),
-          ),
-        ),
-        actions: [
-          if (!_isEditMode)
-            IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              tooltip: 'Add City',
-              onPressed: _showAddCityDialog,
-            ),
-          IconButton(
-            icon: _loading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh Weather',
-            onPressed: _loading
-                ? null
-                : () async {
-                    await _fetchCitiesWeather();
-
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Weather updated successfully!',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-          ),
-          IconButton(
-            icon: Icon(
-              _isEditMode ? Icons.done : Icons.edit,
-              color: Colors.white,
-            ),
-            tooltip: _isEditMode ? 'Done Editing' : 'Edit Cities',
-            onPressed: () => setState(() => _isEditMode = !_isEditMode),
-          ),
-        ],
-      ),
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
@@ -231,139 +123,219 @@ class _CitiesScreenState extends State<CitiesScreen> {
           ),
         ),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-          child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white))
-              : Container(
-                  color: Colors.black.withOpacity(0.3),
-                  child: ReorderableListView.builder(
-                    // Add padding to avoid content being hidden by the nav bar
-                    padding: const EdgeInsets.only(
-                      top: 16,
-                      left: 12,
-                      right: 12,
-                      bottom: 120, // Space for the floating navigation bar
-                    ),
-                    itemCount: _citiesWeather.length,
-                    onReorderStart: (index) =>
-                        setState(() => _draggingIndex = index),
-                    onReorderEnd: (_) => setState(() => _draggingIndex = null),
-                    onReorder: (oldIndex, newIndex) {
-                      setState(() {
-                        if (newIndex > oldIndex) newIndex -= 1;
-                        final city = _cityNames.removeAt(oldIndex);
-                        final weather = _citiesWeather.removeAt(oldIndex);
-                        _cityNames.insert(newIndex, city);
-                        _citiesWeather.insert(newIndex, weather);
-                      });
-                      _saveCities();
-                    },
-                    buildDefaultDragHandles: false,
-                    itemBuilder: (context, index) {
-                      final weather = _citiesWeather[index];
-                      final isDragging = _draggingIndex == index;
-                      return _buildCityCard(weather, index, isDragging);
-                    },
+          filter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
+          child: SafeArea(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white))
+                : CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        backgroundColor: Colors.transparent,
+                        expandedHeight: _expandedHeaderHeight,
+                        pinned: true,
+                        elevation: 0,
+                        automaticallyImplyLeading: false,
+                        flexibleSpace: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final maxH = _expandedHeaderHeight;
+                            final minH = kToolbarHeight;
+                            double frac =
+                                (constraints.maxHeight - minH) / (maxH - minH);
+                            frac = frac.clamp(0.0, 1.0);
+
+                            // Animation & positioning
+                            final titleAlignment = Alignment(
+                                lerpDouble(-0.0, -0.9, 1 - frac)!, 0.0);
+                            final buttonsAlignment =
+                                Alignment(lerpDouble(0.0, 0.9, 1 - frac)!, 0.0);
+                            final titleScale = lerpDouble(1.0, 0.58, 1 - frac)!;
+
+                            final bgOpacity = lerpDouble(0.0, 0.4, 1 - frac)!;
+
+                            return Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                // Black background overlay (whole section)
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  color: Colors.black26.withOpacity(bgOpacity),
+                                ),
+
+                                // Title
+                                AnimatedAlign(
+                                  duration: const Duration(milliseconds: 150),
+                                  alignment: titleAlignment,
+                                  curve: Curves.easeOut,
+                                  child: Transform.scale(
+                                    scale: titleScale,
+                                    alignment: Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        left: 16 * (1 - frac),
+                                        top: frac > 0.6 ? 12 : 0,
+                                      ),
+                                      child: Text(
+                                        'MY CITIES',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 38,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 2,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.35),
+                                              offset: const Offset(0, 2),
+                                              blurRadius: 6,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Buttons
+                                AnimatedAlign(
+                                  duration: const Duration(milliseconds: 150),
+                                  alignment: buttonsAlignment,
+                                  curve: Curves.easeOut,
+                                  child: Padding(
+                                    padding: EdgeInsets.only(
+                                      right: 8,
+                                      top: frac > 0.6 ? 80 : 8,
+                                      left: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (!_isEditMode)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 4),
+                                            child: TextButton.icon(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              onPressed: _showAddCityDialog,
+                                              icon: const Icon(Icons.add),
+                                              label: const Text('Add City'),
+                                            ),
+                                          ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4),
+                                          child: TextButton.icon(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: _fetchCitiesWeather,
+                                            icon: const Icon(Icons.refresh),
+                                            label: const Text('Refresh'),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4),
+                                          child: TextButton.icon(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => setState(() =>
+                                                _isEditMode = !_isEditMode),
+                                            icon: Icon(
+                                              _isEditMode
+                                                  ? Icons.done
+                                                  : Icons.edit,
+                                            ),
+                                            label: Text(
+                                                _isEditMode ? 'Done' : 'Edit'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+
+                      // --- City Cards
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        sliver: SliverToBoxAdapter(
+                          child: ReorderableListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _citiesWeather.length,
+                            onReorder: (oldIndex, newIndex) {
+                              setState(() {
+                                if (newIndex > oldIndex) newIndex -= 1;
+                                final city = _cityNames.removeAt(oldIndex);
+                                final weather =
+                                    _citiesWeather.removeAt(oldIndex);
+                                _cityNames.insert(newIndex, city);
+                                _citiesWeather.insert(newIndex, weather);
+                              });
+                              _saveCities();
+                            },
+                            buildDefaultDragHandles: false,
+                            itemBuilder: (context, index) {
+                              final weather = _citiesWeather[index];
+                              return _buildCityCard(weather, index);
+                            },
+                          ),
+                        ),
+                      ),
+
+                      SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    ],
                   ),
-                ),
+          ),
         ),
       ),
-      floatingActionButton: null,
     );
   }
 
-  Widget _buildCityCard(Weather weather, int index, bool isDragging) {
-    final cardContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // LEFT: City name & condition
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                weather.cityName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                weather.condition,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-            ],
-          ),
-
-          // RIGHT: Icon, Temp, Wind
-          Row(
-            children: [
-              Image.network(
-                weather.iconUrl,
-                width: 50,
-                height: 50,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.cloud, size: 40, color: Colors.white70),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "${weather.temperature.toStringAsFixed(1)}°C",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(Icons.air_rounded,
-                          color: Colors.white, size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        "${weather.windSpeed.toStringAsFixed(1)} km/h",
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    final decoratedCard = AnimatedScale(
+  Widget _buildCityCard(Weather weather, int index) {
+    final card = Container(
       key: ValueKey(weather.cityName),
-      duration: const Duration(milliseconds: 200),
-      scale: isDragging ? 1.05 : 1.0,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white.withOpacity(0.2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        onTap: !_isEditMode ? () => _showExpandedWeather(weather) : null,
+        title: Text(
+          weather.cityName,
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: !_isEditMode ? () => _showExpandedWeather(weather) : null,
-          child: cardContent,
+        subtitle: Text(weather.condition,
+            style: const TextStyle(color: Colors.white70)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "${weather.temperature.toStringAsFixed(1)}°C",
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
+            ),
+            if (_isEditMode) const SizedBox(width: 8),
+            if (_isEditMode)
+              ReorderableDragStartListener(
+                index: index,
+                child:
+                    const Icon(Icons.reorder, color: Colors.white70, size: 22),
+              ),
+          ],
         ),
       ),
     );
@@ -389,22 +361,10 @@ class _CitiesScreenState extends State<CitiesScreen> {
           ),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
-        child: Stack(
-          children: [
-            decoratedCard,
-            Positioned(
-              right: 12,
-              top: 12,
-              child: ReorderableDragStartListener(
-                index: index,
-                child: const Icon(Icons.reorder, color: Colors.white70),
-              ),
-            ),
-          ],
-        ),
+        child: card,
       );
     } else {
-      return decoratedCard;
+      return card;
     }
   }
 }

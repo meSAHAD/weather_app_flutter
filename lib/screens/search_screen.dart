@@ -54,22 +54,30 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _addToCities(String city) async {
     final prefs = await SharedPreferences.getInstance();
-    if (!_savedCities.contains(city)) {
-      setState(() {
-        _savedCities.add(city);
-      });
-      await prefs.setStringList('saved_cities', _savedCities);
+    // 1. Always fetch the latest list from storage first.
+    final currentCities = prefs.getStringList('saved_cities') ?? [];
 
-      // ✅ Notify Cities tab to refresh
-      citiesUpdatedNotifier.value = true;
-
+    if (currentCities.contains(city)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$city added to Cities tab!'),
+          content: Text('$city is already in your saved list.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
+      return;
     }
+
+    // 2. Add the new city and save the updated list.
+    currentCities.add(city);
+    await prefs.setStringList('saved_cities', currentCities);
+
+    // Notify Cities tab to refresh
+    citiesUpdatedNotifier.value = true;
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('$city added to your list!'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Future<void> _clearRecentSearches() async {
