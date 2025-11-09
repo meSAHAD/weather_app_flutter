@@ -210,6 +210,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 30),
 
+              // Additional Info Tiles
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _infoTile(Icons.water_drop_outlined,
+                        '${w.humidity.toInt()}%', 'Humidity'),
+                    _infoTile(Icons.umbrella_outlined,
+                        '${w.forecast.first.rainChance.toInt()}%', 'Rain'),
+                    _infoTile(Icons.thermostat_outlined,
+                        '${w.feelsLike.toStringAsFixed(1)}°', 'Feels Like'),
+                    _infoTile(Icons.air,
+                        '${w.windSpeed.toStringAsFixed(1)} km/h', 'Wind'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
               // Bottom forecast section
               ClipRRect(
                 borderRadius:
@@ -228,6 +247,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _infoTile(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Colors.white70),
+        ),
+      ],
     );
   }
 }
